@@ -168,9 +168,11 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't prevent default for certain system keys that need special handling
-      // PrintScreen, KanaMode, and other IME keys often don't fire events if preventDefault is called
-      if (!['PrintScreen', 'KanaMode', 'Lang1', 'Lang2'].includes(e.code)) {
+      // Special keys that need to not preventDefault to work properly
+      // MetaLeft/MetaRight (Windows key), Backquote (Zenkaku/Hankaku), KanaMode often have issues with preventDefault
+      const specialSystemKeys = ['PrintScreen', 'KanaMode', 'Lang1', 'Lang2', 'MetaLeft', 'MetaRight', 'Backquote'];
+      
+      if (!specialSystemKeys.includes(e.code)) {
         e.preventDefault();
       }
       
@@ -192,8 +194,10 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      // Don't prevent default for certain system keys
-      if (!['PrintScreen', 'KanaMode', 'Lang1', 'Lang2'].includes(e.code)) {
+      // Special keys that need to not preventDefault to work properly
+      const specialSystemKeys = ['PrintScreen', 'KanaMode', 'Lang1', 'Lang2', 'MetaLeft', 'MetaRight', 'Backquote'];
+      
+      if (!specialSystemKeys.includes(e.code)) {
         e.preventDefault();
       }
       

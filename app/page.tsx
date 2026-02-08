@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import Keyboard from './components/Keyboard';
 import MouseTester from './components/MouseTester';
 import KeyPressGraph from './components/KeyPressGraph';
+import EventLog from './components/EventLog';
 
 interface KeyEvent {
   timestamp: number;
@@ -180,6 +181,10 @@ export default function Home() {
 
         <div className="mb-6">
           <KeyPressGraph events={keyEvents} isPaused={isPaused} />
+        </div>
+
+        <div className="mb-6">
+          <EventLog events={keyEvents} />
         </div>
 
         <footer className="text-center text-gray-400 mt-8">
