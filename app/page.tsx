@@ -36,11 +36,7 @@ export default function Home() {
       return newSet;
     });
     
-    const pressTime = pressTimeRef.current.get(key);
-    if (pressTime) {
-      const duration = Date.now() - pressTime;
-      pressTimeRef.current.delete(key);
-    }
+    pressTimeRef.current.delete(key);
     
     setKeyEvents(prev => [...prev, {
       timestamp: Date.now(),
