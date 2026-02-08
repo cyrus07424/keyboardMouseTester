@@ -124,8 +124,8 @@ export default function Home() {
               onClick={() => setActiveTab('keyboard')}
               className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
                 activeTab === 'keyboard'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  ? 'bg-blue-600 text-white active:bg-blue-700'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600 active:bg-gray-800'
               }`}
             >
               キーボード
@@ -134,8 +134,8 @@ export default function Home() {
               onClick={() => setActiveTab('mouse')}
               className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
                 activeTab === 'mouse'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  ? 'bg-blue-600 text-white active:bg-blue-700'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600 active:bg-gray-800'
               }`}
             >
               マウス
@@ -145,13 +145,13 @@ export default function Home() {
           <div className="flex gap-4 justify-center">
             <button
               onClick={togglePause}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg font-semibold transition-colors"
             >
               {isPaused ? 'グラフ再開' : 'グラフ一時停止'}
             </button>
             <button
               onClick={handleReset}
-              className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
+              className="px-6 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-lg font-semibold transition-colors"
             >
               全体リセット
             </button>

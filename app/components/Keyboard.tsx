@@ -165,14 +165,14 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
   
   // Duration for simulated key press for keys that only fire KeyUp events
   const SIMULATED_KEY_PRESS_DURATION = 100;
+  
+  // Special keys that need to not preventDefault to work properly
+  // MetaLeft/MetaRight (Windows key), Backquote (Zenkaku/Hankaku), KanaMode often have issues with preventDefault
+  const SPECIAL_SYSTEM_KEYS = ['PrintScreen', 'KanaMode', 'Lang1', 'Lang2', 'MetaLeft', 'MetaRight', 'Backquote'];
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Special keys that need to not preventDefault to work properly
-      // MetaLeft/MetaRight (Windows key), Backquote (Zenkaku/Hankaku), KanaMode often have issues with preventDefault
-      const specialSystemKeys = ['PrintScreen', 'KanaMode', 'Lang1', 'Lang2', 'MetaLeft', 'MetaRight', 'Backquote'];
-      
-      if (!specialSystemKeys.includes(e.code)) {
+      if (!SPECIAL_SYSTEM_KEYS.includes(e.code)) {
         e.preventDefault();
       }
       
@@ -196,10 +196,7 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      // Special keys that need to not preventDefault to work properly
-      const specialSystemKeys = ['PrintScreen', 'KanaMode', 'Lang1', 'Lang2', 'MetaLeft', 'MetaRight', 'Backquote'];
-      
-      if (!specialSystemKeys.includes(e.code)) {
+      if (!SPECIAL_SYSTEM_KEYS.includes(e.code)) {
         e.preventDefault();
       }
       
