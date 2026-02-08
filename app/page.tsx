@@ -28,11 +28,15 @@ export default function Home() {
     pressTimeRef.current.set(key, Date.now());
     
     // Always capture events regardless of pause state
-    setKeyEvents(prev => [...prev, {
-      timestamp: Date.now(),
-      key,
-      isPressed: true
-    }]);
+    // Keep a maximum of 10000 events to prevent memory issues
+    setKeyEvents(prev => {
+      const newEvents = [...prev, {
+        timestamp: Date.now(),
+        key,
+        isPressed: true
+      }];
+      return newEvents.length > 10000 ? newEvents.slice(-10000) : newEvents;
+    });
   }, []);
 
   const handleKeyRelease = useCallback((key: string) => {
@@ -45,11 +49,15 @@ export default function Home() {
     pressTimeRef.current.delete(key);
     
     // Always capture events regardless of pause state
-    setKeyEvents(prev => [...prev, {
-      timestamp: Date.now(),
-      key,
-      isPressed: false
-    }]);
+    // Keep a maximum of 10000 events to prevent memory issues
+    setKeyEvents(prev => {
+      const newEvents = [...prev, {
+        timestamp: Date.now(),
+        key,
+        isPressed: false
+      }];
+      return newEvents.length > 10000 ? newEvents.slice(-10000) : newEvents;
+    });
   }, []);
 
   const handleButtonPress = useCallback((button: number) => {
@@ -57,11 +65,15 @@ export default function Home() {
     setEverPressedButtons(prev => new Set(prev).add(button));
     
     // Always capture events regardless of pause state
-    setKeyEvents(prev => [...prev, {
-      timestamp: Date.now(),
-      key: `Mouse${button}`,
-      isPressed: true
-    }]);
+    // Keep a maximum of 10000 events to prevent memory issues
+    setKeyEvents(prev => {
+      const newEvents = [...prev, {
+        timestamp: Date.now(),
+        key: `Mouse${button}`,
+        isPressed: true
+      }];
+      return newEvents.length > 10000 ? newEvents.slice(-10000) : newEvents;
+    });
   }, []);
 
   const handleButtonRelease = useCallback((button: number) => {
@@ -72,11 +84,15 @@ export default function Home() {
     });
     
     // Always capture events regardless of pause state
-    setKeyEvents(prev => [...prev, {
-      timestamp: Date.now(),
-      key: `Mouse${button}`,
-      isPressed: false
-    }]);
+    // Keep a maximum of 10000 events to prevent memory issues
+    setKeyEvents(prev => {
+      const newEvents = [...prev, {
+        timestamp: Date.now(),
+        key: `Mouse${button}`,
+        isPressed: false
+      }];
+      return newEvents.length > 10000 ? newEvents.slice(-10000) : newEvents;
+    });
   }, []);
 
   const handleReset = useCallback(() => {
@@ -93,6 +109,7 @@ export default function Home() {
   }, []);
 
   // Event log persistence: Events are kept until manual reset
+  // Maximum 10000 events retained to prevent memory issues in long-running sessions
   // No automatic cleanup to ensure all events are retained
 
   return (
