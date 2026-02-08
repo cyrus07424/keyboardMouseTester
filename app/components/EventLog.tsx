@@ -69,7 +69,7 @@ export default function EventLog({ events }: EventLogProps) {
           <div className="space-y-1">
             {displayEvents.map((event, index) => (
               <div
-                key={`${event.timestamp}-${index}`}
+                key={`${event.timestamp}-${event.key}-${event.isPressed ? 'down' : 'up'}-${index}`}
                 className={`flex gap-3 ${
                   event.isPressed
                     ? 'text-green-400'
