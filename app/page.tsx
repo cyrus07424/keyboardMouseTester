@@ -22,19 +22,29 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'keyboard' | 'mouse'>('keyboard');
   const pressTimeRef = useRef<Map<string, number>>(new Map());
 
+  // Maximum events to keep in memory (prevents memory exhaustion in long-running sessions)
+  const MAX_EVENTS = 10000;
+
+  // Helper function to add event with memory management
+  const addEvent = useCallback((event: KeyEvent) => {
+    setKeyEvents(prev => {
+      const newEvents = [...prev, event];
+      return newEvents.length > MAX_EVENTS ? newEvents.slice(-MAX_EVENTS) : newEvents;
+    });
+  }, []);
+
   const handleKeyPress = useCallback((key: string) => {
     setPressedKeys(prev => new Set(prev).add(key));
     setEverPressedKeys(prev => new Set(prev).add(key));
     pressTimeRef.current.set(key, Date.now());
     
-    if (!isPaused) {
-      setKeyEvents(prev => [...prev, {
-        timestamp: Date.now(),
-        key,
-        isPressed: true
-      }]);
-    }
-  }, [isPaused]);
+    // Always capture events regardless of pause state
+    addEvent({
+      timestamp: Date.now(),
+      key,
+      isPressed: true
+    });
+  }, [addEvent]);
 
   const handleKeyRelease = useCallback((key: string) => {
     setPressedKeys(prev => {
@@ -45,27 +55,25 @@ export default function Home() {
     
     pressTimeRef.current.delete(key);
     
-    if (!isPaused) {
-      setKeyEvents(prev => [...prev, {
-        timestamp: Date.now(),
-        key,
-        isPressed: false
-      }]);
-    }
-  }, [isPaused]);
+    // Always capture events regardless of pause state
+    addEvent({
+      timestamp: Date.now(),
+      key,
+      isPressed: false
+    });
+  }, [addEvent]);
 
   const handleButtonPress = useCallback((button: number) => {
     setPressedButtons(prev => new Set(prev).add(button));
     setEverPressedButtons(prev => new Set(prev).add(button));
     
-    if (!isPaused) {
-      setKeyEvents(prev => [...prev, {
-        timestamp: Date.now(),
-        key: `Mouse${button}`,
-        isPressed: true
-      }]);
-    }
-  }, [isPaused]);
+    // Always capture events regardless of pause state
+    addEvent({
+      timestamp: Date.now(),
+      key: `Mouse${button}`,
+      isPressed: true
+    });
+  }, [addEvent]);
 
   const handleButtonRelease = useCallback((button: number) => {
     setPressedButtons(prev => {
@@ -74,14 +82,13 @@ export default function Home() {
       return newSet;
     });
     
-    if (!isPaused) {
-      setKeyEvents(prev => [...prev, {
-        timestamp: Date.now(),
-        key: `Mouse${button}`,
-        isPressed: false
-      }]);
-    }
-  }, [isPaused]);
+    // Always capture events regardless of pause state
+    addEvent({
+      timestamp: Date.now(),
+      key: `Mouse${button}`,
+      isPressed: false
+    });
+  }, [addEvent]);
 
   const handleReset = useCallback(() => {
     setPressedKeys(new Set());
@@ -96,15 +103,9 @@ export default function Home() {
     setIsPaused(prev => !prev);
   }, []);
 
-  // 古いイベントを定期的に削除（メモリ管理）
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = Date.now();
-      setKeyEvents(prev => prev.filter(e => now - e.timestamp <= 10000));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
+  // Event log persistence: Events are kept until manual reset
+  // Maximum events retained controlled by MAX_EVENTS constant
+  // No automatic cleanup to ensure all events are retained
 
   return (
     <div className="min-h-screen bg-gray-900 py-8">
