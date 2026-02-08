@@ -14,12 +14,16 @@ interface KeyEvent {
 export default function Home() {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
   const [pressedButtons, setPressedButtons] = useState<Set<number>>(new Set());
+  const [everPressedKeys, setEverPressedKeys] = useState<Set<string>>(new Set());
+  const [everPressedButtons, setEverPressedButtons] = useState<Set<number>>(new Set());
   const [keyEvents, setKeyEvents] = useState<KeyEvent[]>([]);
   const [isPaused, setIsPaused] = useState(false);
+  const [activeTab, setActiveTab] = useState<'keyboard' | 'mouse'>('keyboard');
   const pressTimeRef = useRef<Map<string, number>>(new Map());
 
   const handleKeyPress = useCallback((key: string) => {
     setPressedKeys(prev => new Set(prev).add(key));
+    setEverPressedKeys(prev => new Set(prev).add(key));
     pressTimeRef.current.set(key, Date.now());
     
     setKeyEvents(prev => [...prev, {
@@ -47,6 +51,7 @@ export default function Home() {
 
   const handleButtonPress = useCallback((button: number) => {
     setPressedButtons(prev => new Set(prev).add(button));
+    setEverPressedButtons(prev => new Set(prev).add(button));
     
     setKeyEvents(prev => [...prev, {
       timestamp: Date.now(),
@@ -72,6 +77,8 @@ export default function Home() {
   const handleReset = useCallback(() => {
     setPressedKeys(new Set());
     setPressedButtons(new Set());
+    setEverPressedKeys(new Set());
+    setEverPressedButtons(new Set());
     setKeyEvents([]);
     pressTimeRef.current.clear();
   }, []);
@@ -101,6 +108,31 @@ export default function Home() {
             キーボードのキーやマウスのボタンを押すと、リアルタイムで反応します。
             チャタリング検出にも対応しています。
           </p>
+          
+          {/* タブ切り替え */}
+          <div className="flex gap-2 justify-center mb-4">
+            <button
+              onClick={() => setActiveTab('keyboard')}
+              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                activeTab === 'keyboard'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              キーボード
+            </button>
+            <button
+              onClick={() => setActiveTab('mouse')}
+              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                activeTab === 'mouse'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              マウス
+            </button>
+          </div>
+
           <div className="flex gap-4 justify-center">
             <button
               onClick={togglePause}
@@ -117,21 +149,25 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="lg:col-span-2">
+        {/* コンテンツ */}
+        <div className="mb-6">
+          {activeTab === 'keyboard' ? (
             <Keyboard
               pressedKeys={pressedKeys}
+              everPressedKeys={everPressedKeys}
               onKeyPress={handleKeyPress}
               onKeyRelease={handleKeyRelease}
             />
-          </div>
-          <div>
-            <MouseTester
-              pressedButtons={pressedButtons}
-              onButtonPress={handleButtonPress}
-              onButtonRelease={handleButtonRelease}
-            />
-          </div>
+          ) : (
+            <div className="flex justify-center">
+              <MouseTester
+                pressedButtons={pressedButtons}
+                everPressedButtons={everPressedButtons}
+                onButtonPress={handleButtonPress}
+                onButtonRelease={handleButtonRelease}
+              />
+            </div>
+          )}
         </div>
 
         <div className="mb-6">

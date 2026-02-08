@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 interface KeyboardProps {
   pressedKeys: Set<string>;
+  everPressedKeys: Set<string>;
   onKeyPress: (key: string) => void;
   onKeyRelease: (key: string) => void;
 }
@@ -159,7 +160,7 @@ const keyboardLayout = [
   ],
 ];
 
-export default function Keyboard({ pressedKeys, onKeyPress, onKeyRelease }: KeyboardProps) {
+export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onKeyRelease }: KeyboardProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       e.preventDefault();
@@ -194,6 +195,18 @@ export default function Keyboard({ pressedKeys, onKeyPress, onKeyRelease }: Keyb
               }
 
               const isPressed = pressedKeys.has(key.code);
+              const wasEverPressed = everPressedKeys.has(key.code);
+
+              // 3つの状態を表現:
+              // 1. 現在押されている: 黄色 (bg-yellow-400)
+              // 2. 過去に押されたことがある (現在は押されていない): 青緑色 (bg-teal-600)
+              // 3. 一度も押されていない: グレー (bg-gray-700)
+              let bgColor = 'bg-gray-700 text-white';
+              if (isPressed) {
+                bgColor = 'bg-yellow-400 text-black';
+              } else if (wasEverPressed) {
+                bgColor = 'bg-teal-600 text-white';
+              }
 
               return (
                 <div
@@ -204,7 +217,7 @@ export default function Keyboard({ pressedKeys, onKeyPress, onKeyRelease }: Keyb
                     border border-gray-600 rounded
                     text-xs font-semibold text-center
                     transition-colors duration-75
-                    ${isPressed ? 'bg-yellow-400 text-black' : 'bg-gray-700 text-white'}
+                    ${bgColor}
                     ${key.rowSpan === 2 ? 'h-20' : 'h-10'}
                   `}
                   style={{
