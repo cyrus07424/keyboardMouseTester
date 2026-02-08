@@ -165,7 +165,11 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      e.preventDefault();
+      // Don't prevent default for certain system keys that need special handling
+      // PrintScreen, KanaMode, and other IME keys often don't fire events if preventDefault is called
+      if (!['PrintScreen', 'KanaMode', 'Lang1', 'Lang2'].includes(e.code)) {
+        e.preventDefault();
+      }
       
       // Prevent repeat events and duplicate keydown events
       if (e.repeat || currentlyPressedKeys.has(e.code)) {
@@ -177,7 +181,21 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      e.preventDefault();
+      // Don't prevent default for certain system keys
+      if (!['PrintScreen', 'KanaMode', 'Lang1', 'Lang2'].includes(e.code)) {
+        e.preventDefault();
+      }
+      
+      // Special handling for keys that only fire KeyUp (like PrintScreen in some browsers)
+      // These keys are often intercepted by the browser/OS and don't fire KeyDown
+      const specialKeysWithoutKeyDown = ['PrintScreen'];
+      
+      if (specialKeysWithoutKeyDown.includes(e.code) && !currentlyPressedKeys.has(e.code)) {
+        // Simulate a quick press and release for keys that only fire KeyUp
+        onKeyPress(e.code);
+        setTimeout(() => onKeyRelease(e.code), 100);
+        return;
+      }
       
       // Only process keyup if we've seen a keydown for this key
       if (currentlyPressedKeys.has(e.code)) {
