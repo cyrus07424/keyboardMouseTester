@@ -26,12 +26,14 @@ export default function Home() {
     setEverPressedKeys(prev => new Set(prev).add(key));
     pressTimeRef.current.set(key, Date.now());
     
-    setKeyEvents(prev => [...prev, {
-      timestamp: Date.now(),
-      key,
-      isPressed: true
-    }]);
-  }, []);
+    if (!isPaused) {
+      setKeyEvents(prev => [...prev, {
+        timestamp: Date.now(),
+        key,
+        isPressed: true
+      }]);
+    }
+  }, [isPaused]);
 
   const handleKeyRelease = useCallback((key: string) => {
     setPressedKeys(prev => {
@@ -42,23 +44,27 @@ export default function Home() {
     
     pressTimeRef.current.delete(key);
     
-    setKeyEvents(prev => [...prev, {
-      timestamp: Date.now(),
-      key,
-      isPressed: false
-    }]);
-  }, []);
+    if (!isPaused) {
+      setKeyEvents(prev => [...prev, {
+        timestamp: Date.now(),
+        key,
+        isPressed: false
+      }]);
+    }
+  }, [isPaused]);
 
   const handleButtonPress = useCallback((button: number) => {
     setPressedButtons(prev => new Set(prev).add(button));
     setEverPressedButtons(prev => new Set(prev).add(button));
     
-    setKeyEvents(prev => [...prev, {
-      timestamp: Date.now(),
-      key: `Mouse${button}`,
-      isPressed: true
-    }]);
-  }, []);
+    if (!isPaused) {
+      setKeyEvents(prev => [...prev, {
+        timestamp: Date.now(),
+        key: `Mouse${button}`,
+        isPressed: true
+      }]);
+    }
+  }, [isPaused]);
 
   const handleButtonRelease = useCallback((button: number) => {
     setPressedButtons(prev => {
@@ -67,12 +73,14 @@ export default function Home() {
       return newSet;
     });
     
-    setKeyEvents(prev => [...prev, {
-      timestamp: Date.now(),
-      key: `Mouse${button}`,
-      isPressed: false
-    }]);
-  }, []);
+    if (!isPaused) {
+      setKeyEvents(prev => [...prev, {
+        timestamp: Date.now(),
+        key: `Mouse${button}`,
+        isPressed: false
+      }]);
+    }
+  }, [isPaused]);
 
   const handleReset = useCallback(() => {
     setPressedKeys(new Set());

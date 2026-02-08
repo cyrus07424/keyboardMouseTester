@@ -161,17 +161,64 @@ const keyboardLayout = [
 ];
 
 export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onKeyRelease }: KeyboardProps) {
+  const [currentlyPressedKeys, setCurrentlyPressedKeys] = useState<Set<string>>(new Set());
+  
+  // Duration for simulated key press for keys that only fire KeyUp events
+  const SIMULATED_KEY_PRESS_DURATION = 100;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      e.preventDefault();
-      if (!e.repeat) {
-        onKeyPress(e.code);
+      // Don't prevent default for certain system keys that need special handling
+      // PrintScreen, KanaMode, and other IME keys often don't fire events if preventDefault is called
+      if (!['PrintScreen', 'KanaMode', 'Lang1', 'Lang2'].includes(e.code)) {
+        e.preventDefault();
       }
+      
+      // Prevent repeat events and duplicate keydown events
+      if (e.repeat) {
+        return;
+      }
+      
+      setCurrentlyPressedKeys(prev => {
+        if (prev.has(e.code)) {
+          return prev;
+        }
+        const newSet = new Set(prev);
+        newSet.add(e.code);
+        return newSet;
+      });
+      
+      onKeyPress(e.code);
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      e.preventDefault();
-      onKeyRelease(e.code);
+      // Don't prevent default for certain system keys
+      if (!['PrintScreen', 'KanaMode', 'Lang1', 'Lang2'].includes(e.code)) {
+        e.preventDefault();
+      }
+      
+      // Special handling for keys that only fire KeyUp (like PrintScreen in some browsers)
+      // These keys are often intercepted by the browser/OS and don't fire KeyDown
+      setCurrentlyPressedKeys(prev => {
+        const specialKeysWithoutKeyDown = ['PrintScreen'];
+        
+        if (specialKeysWithoutKeyDown.includes(e.code) && !prev.has(e.code)) {
+          // Simulate a quick press and release for keys that only fire KeyUp
+          onKeyPress(e.code);
+          setTimeout(() => onKeyRelease(e.code), SIMULATED_KEY_PRESS_DURATION);
+          return prev;
+        }
+        
+        // Only process keyup if we've seen a keydown for this key
+        if (prev.has(e.code)) {
+          const newSet = new Set(prev);
+          newSet.delete(e.code);
+          onKeyRelease(e.code);
+          return newSet;
+        }
+        
+        return prev;
+      });
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -181,7 +228,7 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [onKeyPress, onKeyRelease]);
+  }, [onKeyPress, onKeyRelease, SIMULATED_KEY_PRESS_DURATION]);
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
