@@ -161,17 +161,33 @@ const keyboardLayout = [
 ];
 
 export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onKeyRelease }: KeyboardProps) {
+  const [currentlyPressedKeys, setCurrentlyPressedKeys] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       e.preventDefault();
-      if (!e.repeat) {
-        onKeyPress(e.code);
+      
+      // Prevent repeat events and duplicate keydown events
+      if (e.repeat || currentlyPressedKeys.has(e.code)) {
+        return;
       }
+      
+      setCurrentlyPressedKeys(prev => new Set(prev).add(e.code));
+      onKeyPress(e.code);
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       e.preventDefault();
-      onKeyRelease(e.code);
+      
+      // Only process keyup if we've seen a keydown for this key
+      if (currentlyPressedKeys.has(e.code)) {
+        setCurrentlyPressedKeys(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(e.code);
+          return newSet;
+        });
+        onKeyRelease(e.code);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -181,7 +197,7 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [onKeyPress, onKeyRelease]);
+  }, [onKeyPress, onKeyRelease, currentlyPressedKeys]);
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
