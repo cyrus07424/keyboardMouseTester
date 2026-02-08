@@ -165,12 +165,14 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
   
   // Duration for simulated key press for keys that only fire KeyUp events
   const SIMULATED_KEY_PRESS_DURATION = 100;
+  
+  // Special keys that need to not preventDefault to work properly
+  // MetaLeft/MetaRight (Windows key), Backquote (Zenkaku/Hankaku), KanaMode often have issues with preventDefault
+  const SPECIAL_SYSTEM_KEYS = ['PrintScreen', 'KanaMode', 'Lang1', 'Lang2', 'MetaLeft', 'MetaRight', 'Backquote'];
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't prevent default for certain system keys that need special handling
-      // PrintScreen, KanaMode, and other IME keys often don't fire events if preventDefault is called
-      if (!['PrintScreen', 'KanaMode', 'Lang1', 'Lang2'].includes(e.code)) {
+      if (!SPECIAL_SYSTEM_KEYS.includes(e.code)) {
         e.preventDefault();
       }
       
@@ -179,6 +181,7 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
         return;
       }
       
+      // Check if key is already pressed before updating state
       setCurrentlyPressedKeys(prev => {
         if (prev.has(e.code)) {
           return prev;
@@ -188,24 +191,25 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
         return newSet;
       });
       
+      // Call onKeyPress after state update
       onKeyPress(e.code);
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      // Don't prevent default for certain system keys
-      if (!['PrintScreen', 'KanaMode', 'Lang1', 'Lang2'].includes(e.code)) {
+      if (!SPECIAL_SYSTEM_KEYS.includes(e.code)) {
         e.preventDefault();
       }
       
-      // Special handling for keys that only fire KeyUp (like PrintScreen in some browsers)
-      // These keys are often intercepted by the browser/OS and don't fire KeyDown
+      let shouldCallRelease = false;
+      let shouldSimulatePress = false;
+      
+      // Check current state and decide what to do
       setCurrentlyPressedKeys(prev => {
         const specialKeysWithoutKeyDown = ['PrintScreen'];
         
         if (specialKeysWithoutKeyDown.includes(e.code) && !prev.has(e.code)) {
-          // Simulate a quick press and release for keys that only fire KeyUp
-          onKeyPress(e.code);
-          setTimeout(() => onKeyRelease(e.code), SIMULATED_KEY_PRESS_DURATION);
+          // Special key that only fires KeyUp - simulate press and release
+          shouldSimulatePress = true;
           return prev;
         }
         
@@ -213,12 +217,20 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
         if (prev.has(e.code)) {
           const newSet = new Set(prev);
           newSet.delete(e.code);
-          onKeyRelease(e.code);
+          shouldCallRelease = true;
           return newSet;
         }
         
         return prev;
       });
+      
+      // Call callbacks after state update
+      if (shouldSimulatePress) {
+        onKeyPress(e.code);
+        setTimeout(() => onKeyRelease(e.code), SIMULATED_KEY_PRESS_DURATION);
+      } else if (shouldCallRelease) {
+        onKeyRelease(e.code);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);

@@ -17,14 +17,26 @@ export default function KeyPressGraph({ events, isPaused }: KeyPressGraphProps) 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [keys, setKeys] = useState<string[]>([]);
   const [renderTrigger, setRenderTrigger] = useState(0);
+  const pausedTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     // 過去10秒間のイベントから一意なキーを抽出
-    const now = Date.now();
+    const now = pausedTimeRef.current ?? Date.now();
     const recentEvents = events.filter(e => now - e.timestamp <= 10000);
     const uniqueKeys = Array.from(new Set(recentEvents.map(e => e.key)));
     setKeys(uniqueKeys);
   }, [events]);
+
+  useEffect(() => {
+    // 一時停止状態が変わったときの処理
+    if (isPaused && pausedTimeRef.current === null) {
+      // 一時停止開始 - 現在時刻を記録
+      pausedTimeRef.current = Date.now();
+    } else if (!isPaused && pausedTimeRef.current !== null) {
+      // 一時停止解除 - 記録をクリア
+      pausedTimeRef.current = null;
+    }
+  }, [isPaused]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -35,7 +47,8 @@ export default function KeyPressGraph({ events, isPaused }: KeyPressGraphProps) 
 
     const width = canvas.width;
     const height = canvas.height;
-    const now = Date.now();
+    // 一時停止中は固定された時刻を使用、そうでなければ現在時刻
+    const now = pausedTimeRef.current ?? Date.now();
 
     // キャンバスをクリア
     ctx.fillStyle = '#1f2937';
