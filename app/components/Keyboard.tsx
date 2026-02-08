@@ -9,6 +9,13 @@ interface KeyboardProps {
   onKeyRelease: (key: string) => void;
 }
 
+// Duration for simulated key press for keys that only fire KeyUp events
+const SIMULATED_KEY_PRESS_DURATION = 100;
+
+// Special keys that need to not preventDefault to work properly
+// MetaLeft/MetaRight (Windows key), Backquote (Zenkaku/Hankaku), KanaMode often have issues with preventDefault
+const SPECIAL_SYSTEM_KEYS = ['PrintScreen', 'KanaMode', 'Lang1', 'Lang2', 'MetaLeft', 'MetaRight', 'Backquote'];
+
 // 109キーボードのレイアウト定義
 const keyboardLayout = [
   // Row 1: ESC, F1-F12, etc.
@@ -162,13 +169,6 @@ const keyboardLayout = [
 
 export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onKeyRelease }: KeyboardProps) {
   const [currentlyPressedKeys, setCurrentlyPressedKeys] = useState<Set<string>>(new Set());
-  
-  // Duration for simulated key press for keys that only fire KeyUp events
-  const SIMULATED_KEY_PRESS_DURATION = 100;
-  
-  // Special keys that need to not preventDefault to work properly
-  // MetaLeft/MetaRight (Windows key), Backquote (Zenkaku/Hankaku), KanaMode often have issues with preventDefault
-  const SPECIAL_SYSTEM_KEYS = ['PrintScreen', 'KanaMode', 'Lang1', 'Lang2', 'MetaLeft', 'MetaRight', 'Backquote'];
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -240,7 +240,7 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [onKeyPress, onKeyRelease, SIMULATED_KEY_PRESS_DURATION]);
+  }, [onKeyPress, onKeyRelease]);
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
