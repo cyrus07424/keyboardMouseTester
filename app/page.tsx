@@ -27,14 +27,13 @@ export default function Home() {
     setEverPressedKeys(prev => new Set(prev).add(key));
     pressTimeRef.current.set(key, Date.now());
     
-    if (!isPaused) {
-      setKeyEvents(prev => [...prev, {
-        timestamp: Date.now(),
-        key,
-        isPressed: true
-      }]);
-    }
-  }, [isPaused]);
+    // Always capture events regardless of pause state
+    setKeyEvents(prev => [...prev, {
+      timestamp: Date.now(),
+      key,
+      isPressed: true
+    }]);
+  }, []);
 
   const handleKeyRelease = useCallback((key: string) => {
     setPressedKeys(prev => {
@@ -45,27 +44,25 @@ export default function Home() {
     
     pressTimeRef.current.delete(key);
     
-    if (!isPaused) {
-      setKeyEvents(prev => [...prev, {
-        timestamp: Date.now(),
-        key,
-        isPressed: false
-      }]);
-    }
-  }, [isPaused]);
+    // Always capture events regardless of pause state
+    setKeyEvents(prev => [...prev, {
+      timestamp: Date.now(),
+      key,
+      isPressed: false
+    }]);
+  }, []);
 
   const handleButtonPress = useCallback((button: number) => {
     setPressedButtons(prev => new Set(prev).add(button));
     setEverPressedButtons(prev => new Set(prev).add(button));
     
-    if (!isPaused) {
-      setKeyEvents(prev => [...prev, {
-        timestamp: Date.now(),
-        key: `Mouse${button}`,
-        isPressed: true
-      }]);
-    }
-  }, [isPaused]);
+    // Always capture events regardless of pause state
+    setKeyEvents(prev => [...prev, {
+      timestamp: Date.now(),
+      key: `Mouse${button}`,
+      isPressed: true
+    }]);
+  }, []);
 
   const handleButtonRelease = useCallback((button: number) => {
     setPressedButtons(prev => {
@@ -74,14 +71,13 @@ export default function Home() {
       return newSet;
     });
     
-    if (!isPaused) {
-      setKeyEvents(prev => [...prev, {
-        timestamp: Date.now(),
-        key: `Mouse${button}`,
-        isPressed: false
-      }]);
-    }
-  }, [isPaused]);
+    // Always capture events regardless of pause state
+    setKeyEvents(prev => [...prev, {
+      timestamp: Date.now(),
+      key: `Mouse${button}`,
+      isPressed: false
+    }]);
+  }, []);
 
   const handleReset = useCallback(() => {
     setPressedKeys(new Set());
@@ -96,15 +92,8 @@ export default function Home() {
     setIsPaused(prev => !prev);
   }, []);
 
-  // 古いイベントを定期的に削除（メモリ管理）
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = Date.now();
-      setKeyEvents(prev => prev.filter(e => now - e.timestamp <= 10000));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
+  // Event log persistence: Events are kept until manual reset
+  // No automatic cleanup to ensure all events are retained
 
   return (
     <div className="min-h-screen bg-gray-900 py-8">
