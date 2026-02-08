@@ -181,6 +181,7 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
         return;
       }
       
+      // Check if key is already pressed before updating state
       setCurrentlyPressedKeys(prev => {
         if (prev.has(e.code)) {
           return prev;
@@ -190,6 +191,7 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
         return newSet;
       });
       
+      // Call onKeyPress after state update
       onKeyPress(e.code);
     };
 
@@ -201,15 +203,16 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
         e.preventDefault();
       }
       
-      // Special handling for keys that only fire KeyUp (like PrintScreen in some browsers)
-      // These keys are often intercepted by the browser/OS and don't fire KeyDown
+      let shouldCallRelease = false;
+      let shouldSimulatePress = false;
+      
+      // Check current state and decide what to do
       setCurrentlyPressedKeys(prev => {
         const specialKeysWithoutKeyDown = ['PrintScreen'];
         
         if (specialKeysWithoutKeyDown.includes(e.code) && !prev.has(e.code)) {
-          // Simulate a quick press and release for keys that only fire KeyUp
-          onKeyPress(e.code);
-          setTimeout(() => onKeyRelease(e.code), SIMULATED_KEY_PRESS_DURATION);
+          // Special key that only fires KeyUp - simulate press and release
+          shouldSimulatePress = true;
           return prev;
         }
         
@@ -217,12 +220,20 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
         if (prev.has(e.code)) {
           const newSet = new Set(prev);
           newSet.delete(e.code);
-          onKeyRelease(e.code);
+          shouldCallRelease = true;
           return newSet;
         }
         
         return prev;
       });
+      
+      // Call callbacks after state update
+      if (shouldSimulatePress) {
+        onKeyPress(e.code);
+        setTimeout(() => onKeyRelease(e.code), SIMULATED_KEY_PRESS_DURATION);
+      } else if (shouldCallRelease) {
+        onKeyRelease(e.code);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
