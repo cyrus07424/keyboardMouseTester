@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import Keyboard from './components/Keyboard';
 import MouseTester from './components/MouseTester';
 import KeyPressGraph from './components/KeyPressGraph';
@@ -12,15 +12,67 @@ interface KeyEvent {
   isPressed: boolean;
 }
 
+interface ToggleSwitchProps {
+  label: string;
+  checked: boolean;
+  onToggle: () => void;
+  onLabel: string;
+  offLabel: string;
+}
+
+function ToggleSwitch({ label, checked, onToggle, onLabel, offLabel }: ToggleSwitchProps) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-lg bg-gray-900/70 px-4 py-3 border border-gray-700">
+      <div className="text-left">
+        <p className="text-sm font-semibold text-gray-100">{label}</p>
+        <p className="text-xs text-gray-400">{checked ? onLabel : offLabel}</p>
+      </div>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-pressed={checked}
+        className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${checked ? 'bg-emerald-600' : 'bg-gray-600'}`}
+      >
+        <span
+          className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-8' : 'translate-x-1'}`}
+        />
+      </button>
+    </div>
+  );
+}
+
 export default function Home() {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
+  const [keyPressCounts, setKeyPressCounts] = useState<Record<string, number>>({});
+  const [mouseButtonCounts, setMouseButtonCounts] = useState<Record<number, number>>({});
   const [pressedButtons, setPressedButtons] = useState<Set<number>>(new Set());
   const [everPressedKeys, setEverPressedKeys] = useState<Set<string>>(new Set());
   const [everPressedButtons, setEverPressedButtons] = useState<Set<number>>(new Set());
   const [keyEvents, setKeyEvents] = useState<KeyEvent[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const [activeTab, setActiveTab] = useState<'keyboard' | 'mouse'>('keyboard');
+  const [debugEnabled, setDebugEnabled] = useState(false);
+  const [viewMode, setViewMode] = useState<'normal' | 'heatmap'>('normal');
   const pressTimeRef = useRef<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const debugParam = params.get('debug');
+    const savedDebug = window.localStorage.getItem('testerDebug');
+    const savedViewMode = window.localStorage.getItem('testerViewMode');
+
+    if (debugParam === '1' || debugParam === 'true') {
+      setDebugEnabled(true);
+    } else if (debugParam === '0' || debugParam === 'false') {
+      setDebugEnabled(false);
+    } else {
+      setDebugEnabled(savedDebug === '1');
+    }
+
+    if (savedViewMode === 'normal' || savedViewMode === 'heatmap') {
+      setViewMode(savedViewMode);
+    }
+  }, []);
 
   // Maximum events to keep in memory (prevents memory exhaustion in long-running sessions)
   const MAX_EVENTS = 10000;
@@ -36,6 +88,10 @@ export default function Home() {
   const handleKeyPress = useCallback((key: string) => {
     setPressedKeys(prev => new Set(prev).add(key));
     setEverPressedKeys(prev => new Set(prev).add(key));
+    setKeyPressCounts(prev => ({
+      ...prev,
+      [key]: (prev[key] ?? 0) + 1,
+    }));
     pressTimeRef.current.set(key, Date.now());
     
     // Always capture events regardless of pause state
@@ -66,7 +122,11 @@ export default function Home() {
   const handleButtonPress = useCallback((button: number) => {
     setPressedButtons(prev => new Set(prev).add(button));
     setEverPressedButtons(prev => new Set(prev).add(button));
-    
+    setMouseButtonCounts(prev => ({
+      ...prev,
+      [button]: (prev[button] ?? 0) + 1,
+    }));
+
     // Always capture events regardless of pause state
     addEvent({
       timestamp: Date.now(),
@@ -92,6 +152,8 @@ export default function Home() {
 
   const handleReset = useCallback(() => {
     setPressedKeys(new Set());
+    setKeyPressCounts({});
+    setMouseButtonCounts({});
     setPressedButtons(new Set());
     setEverPressedKeys(new Set());
     setEverPressedButtons(new Set());
@@ -101,6 +163,22 @@ export default function Home() {
 
   const togglePause = useCallback(() => {
     setIsPaused(prev => !prev);
+  }, []);
+
+  const toggleDebug = useCallback(() => {
+    setDebugEnabled(prev => {
+      const next = !prev;
+      window.localStorage.setItem('testerDebug', next ? '1' : '0');
+      return next;
+    });
+  }, []);
+
+  const toggleViewMode = useCallback(() => {
+    setViewMode(prev => {
+      const next = prev === 'heatmap' ? 'normal' : 'heatmap';
+      window.localStorage.setItem('testerViewMode', next);
+      return next;
+    });
   }, []);
 
   // Event log persistence: Events are kept until manual reset
@@ -143,7 +221,7 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="flex gap-4 justify-center">
+          <div className="flex gap-4 justify-center mb-4">
             <button
               onClick={togglePause}
               className="px-6 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg font-semibold transition-colors"
@@ -157,6 +235,26 @@ export default function Home() {
               全体リセット
             </button>
           </div>
+
+          <div className="mx-auto max-w-xl rounded-xl border border-gray-700 bg-gray-800/70 p-4">
+            <p className="text-sm font-bold text-gray-200 mb-3">設定メニュー</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              <ToggleSwitch
+                label="表示モード"
+                checked={viewMode === 'heatmap'}
+                onToggle={toggleViewMode}
+                onLabel="ヒートマップ"
+                offLabel="通常"
+              />
+              <ToggleSwitch
+                label="デバッグモード"
+                checked={debugEnabled}
+                onToggle={toggleDebug}
+                onLabel="ON"
+                offLabel="OFF"
+              />
+            </div>
+          </div>
         </div>
 
         {/* コンテンツ */}
@@ -165,6 +263,9 @@ export default function Home() {
             <Keyboard
               pressedKeys={pressedKeys}
               everPressedKeys={everPressedKeys}
+              keyPressCounts={keyPressCounts}
+              viewMode={viewMode}
+              debugEnabled={debugEnabled}
               onKeyPress={handleKeyPress}
               onKeyRelease={handleKeyRelease}
             />
@@ -173,6 +274,9 @@ export default function Home() {
               <MouseTester
                 pressedButtons={pressedButtons}
                 everPressedButtons={everPressedButtons}
+                buttonPressCounts={mouseButtonCounts}
+                viewMode={viewMode}
+                debugEnabled={debugEnabled}
                 onButtonPress={handleButtonPress}
                 onButtonRelease={handleButtonRelease}
               />

@@ -1,10 +1,13 @@
 'use client';
 
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 
 interface KeyboardProps {
   pressedKeys: Set<string>;
   everPressedKeys: Set<string>;
+  keyPressCounts: Record<string, number>;
+  viewMode: 'normal' | 'heatmap';
+  debugEnabled: boolean;
   onKeyPress: (key: string) => void;
   onKeyRelease: (key: string) => void;
 }
@@ -31,8 +34,6 @@ const SPECIAL_SYSTEM_KEYS = [
 const IME_TOGGLE_KEYS = new Set(['Backquote', 'KanaMode', 'Convert', 'NonConvert', 'CapsLock']);
 const IME_RELEASE_FALLBACK_MS = 120;
 const KEYUP_TAP_KEYS = new Set(['Backquote', 'KanaMode', 'Convert', 'NonConvert', 'PrintScreen', 'CapsLock']);
-const DEBUG_QUERY_KEY = 'kbdDebug';
-const DEBUG_STORAGE_KEY = 'keyboardDebug';
 const KANA_KEY_ALIASES = new Set([
   'KanaMode',
   'Kana',
@@ -219,37 +220,36 @@ const keyboardLayout = [
   ],
 ];
 
-export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onKeyRelease }: KeyboardProps) {
+export default function Keyboard({
+  pressedKeys,
+  everPressedKeys,
+  keyPressCounts,
+  viewMode,
+  debugEnabled,
+  onKeyPress,
+  onKeyRelease,
+}: KeyboardProps) {
   // useRef を使うことでイベントハンドラ内から同期的に参照・更新できる
   const currentlyPressedKeysRef = useRef<Set<string>>(new Set());
   const releaseTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const lastTapTimeRef = useRef<Map<string, number>>(new Map());
-  const [debugEnabled, setDebugEnabled] = useState(false);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const query = params.get(DEBUG_QUERY_KEY);
+  const maxPressCount = useMemo(
+    () => Object.values(keyPressCounts).reduce((max, count) => (count > max ? count : max), 0),
+    [keyPressCounts],
+  );
 
-    if (query === '1' || query === 'true') {
-      setDebugEnabled(true);
-      window.localStorage.setItem(DEBUG_STORAGE_KEY, '1');
-      return;
-    }
+  const getHeatmapStyle = (count: number) => {
+    if (count <= 0 || maxPressCount <= 0) return undefined;
 
-    if (query === '0' || query === 'false') {
-      setDebugEnabled(false);
-      window.localStorage.setItem(DEBUG_STORAGE_KEY, '0');
-      return;
-    }
+    const normalized = Math.log(count + 1) / Math.log(maxPressCount + 1);
+    const hue = 220 - (220 * normalized);
+    const lightness = 32 + (14 * normalized);
 
-    setDebugEnabled(window.localStorage.getItem(DEBUG_STORAGE_KEY) === '1');
-  }, []);
-
-  const toggleDebug = () => {
-    const next = !debugEnabled;
-    setDebugEnabled(next);
-    window.localStorage.setItem(DEBUG_STORAGE_KEY, next ? '1' : '0');
-    console.info(`[KeyboardDebug] ${next ? 'enabled' : 'disabled'}`);
+    return {
+      backgroundColor: `hsl(${hue} 78% ${lightness}%)`,
+      color: '#f9fafb',
+    };
   };
 
   const debugLog = (tag: string, payload: Record<string, unknown>) => {
@@ -410,15 +410,13 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
     <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-white text-xl font-bold">キーボード (109キー)</h2>
-        <button
-          onClick={toggleDebug}
-          className={`px-3 py-1 text-xs rounded border transition-colors ${debugEnabled
-            ? 'bg-amber-600 border-amber-500 text-white hover:bg-amber-500'
-            : 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600'}`}
-          type="button"
-        >
-          Debug: {debugEnabled ? 'ON' : 'OFF'}
-        </button>
+        {viewMode === 'heatmap' && (
+          <div className="flex items-center gap-2 text-xs text-gray-300">
+            <span>Heat</span>
+            <div className="h-2 w-20 rounded-full bg-linear-to-r from-blue-600 via-emerald-500 to-red-500" />
+            <span>Max: {maxPressCount}</span>
+          </div>
+        )}
       </div>
       <div className="space-y-1">
         {keyboardLayout.map((row, rowIndex) => (
@@ -432,6 +430,7 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
 
               const isPressed = pressedKeys.has(key.code);
               const wasEverPressed = everPressedKeys.has(key.code);
+              const pressCount = keyPressCounts[key.code] ?? 0;
 
               // 3つの状態を表現:
               // 1. 現在押されている: 黄色 (bg-yellow-400)
@@ -440,9 +439,13 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
               let bgColor = 'bg-gray-700 text-white';
               if (isPressed) {
                 bgColor = 'bg-yellow-400 text-black';
+              } else if (viewMode === 'heatmap' && pressCount > 0) {
+                bgColor = 'text-white';
               } else if (wasEverPressed) {
                 bgColor = 'bg-teal-600 text-white';
               }
+
+              const heatmapStyle = viewMode === 'heatmap' && !isPressed ? getHeatmapStyle(pressCount) : undefined;
 
               if (key.rowSpan === 2) {
                 return (
@@ -461,8 +464,14 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
                         ${bgColor}
                         h-21 w-full
                       `}
+                      style={heatmapStyle}
                     >
                       <span className="whitespace-pre-line leading-tight">{key.label}</span>
+                      {viewMode === 'heatmap' && pressCount > 0 && (
+                        <span className="absolute top-0.5 right-1 text-[10px] leading-none text-gray-100/90">
+                          {pressCount}
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
@@ -483,9 +492,15 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
                   style={{
                     width: keyWidth,
                     minWidth: keyWidth,
+                    ...heatmapStyle,
                   }}
                 >
                   <span className="whitespace-pre-line leading-tight">{key.label}</span>
+                  {viewMode === 'heatmap' && pressCount > 0 && (
+                    <span className="absolute top-0.5 right-1 text-[10px] leading-none text-gray-100/90">
+                      {pressCount}
+                    </span>
+                  )}
                 </div>
               );
             })}
