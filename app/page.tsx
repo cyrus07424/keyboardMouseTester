@@ -53,6 +53,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'keyboard' | 'mouse'>('keyboard');
   const [debugEnabled, setDebugEnabled] = useState(false);
   const [viewMode, setViewMode] = useState<'normal' | 'heatmap'>('normal');
+  const [preventPageScroll, setPreventPageScroll] = useState(true);
   const pressTimeRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
@@ -71,6 +72,11 @@ export default function Home() {
 
     if (savedViewMode === 'normal' || savedViewMode === 'heatmap') {
       setViewMode(savedViewMode);
+    }
+
+    const savedPreventScroll = window.localStorage.getItem('testerPreventPageScroll');
+    if (savedPreventScroll !== null) {
+      setPreventPageScroll(savedPreventScroll !== '0');
     }
   }, []);
 
@@ -177,6 +183,14 @@ export default function Home() {
     });
   }, []);
 
+  const togglePreventPageScroll = useCallback(() => {
+    setPreventPageScroll(prev => {
+      const next = !prev;
+      window.localStorage.setItem('testerPreventPageScroll', next ? '1' : '0');
+      return next;
+    });
+  }, []);
+
   // Event log persistence: Events are kept until manual reset
   // Maximum events retained controlled by MAX_EVENTS constant
   // No automatic cleanup to ensure all events are retained
@@ -234,6 +248,15 @@ export default function Home() {
                 onLabel="ON"
                 offLabel="OFF"
               />
+              {activeTab === 'mouse' && (
+                <ToggleSwitch
+                  label="ページスクロール抑制"
+                  checked={preventPageScroll}
+                  onToggle={togglePreventPageScroll}
+                  onLabel="抑制する"
+                  offLabel="抑制しない"
+                />
+              )}
                 <div className="flex items-center justify-between gap-4 rounded-lg bg-gray-900/70 px-4 py-3 border border-gray-700">
                     <div className="text-left">
                         <p className="text-sm font-semibold text-gray-100">全体リセット</p>
@@ -269,6 +292,7 @@ export default function Home() {
                 buttonPressCounts={mouseButtonCounts}
                 viewMode={viewMode}
                 debugEnabled={debugEnabled}
+                preventPageScroll={preventPageScroll}
                 onButtonPress={handleButtonPress}
                 onButtonRelease={handleButtonRelease}
               />
