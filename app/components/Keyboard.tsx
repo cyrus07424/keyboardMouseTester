@@ -107,7 +107,7 @@ const keyboardLayout = [
     { code: 'Minus', label: '-\n=', width: 1 },
     { code: 'Equal', label: '^\n~', width: 1 },
     { code: 'IntlYen', label: '¥\n|', width: 1 },
-    { code: 'Backspace', label: 'Backspace', width: 1.5 },
+    { code: 'Backspace', label: 'BS', width: 1.1 },
     { code: '', label: '', width: 0.5, empty: true },
     { code: 'Insert', label: 'Ins', width: 1 },
     { code: 'Home', label: 'Home', width: 1 },
@@ -132,8 +132,8 @@ const keyboardLayout = [
     { code: 'KeyO', label: 'O', width: 1 },
     { code: 'KeyP', label: 'P', width: 1 },
     { code: 'BracketLeft', label: '@\n`', width: 1 },
-    { code: 'BracketRight', label: '[\n{', width: 1 },
-    { code: 'Enter', label: 'Enter', width: 1.5, rowSpan: 2 },
+    { code: 'BracketRight', label: '[\n{', width: 1.3 },
+    { code: 'Enter', label: 'Enter', width: 1.4, rowSpan: 2 },
     { code: '', label: '', width: 0.5, empty: true },
     { code: 'Delete', label: 'Del', width: 1 },
     { code: 'End', label: 'End', width: 1 },
@@ -159,9 +159,11 @@ const keyboardLayout = [
     { code: 'Semicolon', label: ';\n+', width: 1 },
     { code: 'Quote', label: ':\n*', width: 1 },
     { code: 'Backslash', label: ']\n}', width: 1 },
-    { code: '', label: '', width: 1.5, empty: true }, // Enter continues from above
+    { code: '', label: '', width: 1.4, empty: true }, // Enter continues from above
     { code: '', label: '', width: 0.5, empty: true },
-    { code: '', label: '', width: 3, empty: true },
+    { code: '', label: '', width: 1, empty: true },
+    { code: '', label: '', width: 1, empty: true },
+    { code: '', label: '', width: 1, empty: true },
     { code: '', label: '', width: 0.5, empty: true },
     { code: 'Numpad4', label: '4', width: 1 },
     { code: 'Numpad5', label: '5', width: 1 },
@@ -195,23 +197,23 @@ const keyboardLayout = [
   ],
   // Row 6: Control行
   [
-    { code: 'ControlLeft', label: 'Ctrl', width: 1.3 },
-    { code: 'MetaLeft', label: 'Win', width: 1.3 },
-    { code: 'AltLeft', label: 'Alt', width: 1.3 },
-    { code: 'NonConvert', label: '無変換', width: 1.3 },
+    { code: 'ControlLeft', label: 'Ctrl', width: 1.1 },
+    { code: 'MetaLeft', label: 'Win', width: 1.1 },
+    { code: 'AltLeft', label: 'Alt', width: 1.1 },
+    { code: 'NonConvert', label: '無変換', width: 1.1 },
     { code: 'Space', label: 'Space', width: 4.5 },
-    { code: 'Convert', label: '変換', width: 1.3 },
-    { code: 'KanaMode', label: 'かな', width: 1.3 },
-    { code: 'AltRight', label: 'Alt', width: 1.3 },
-    { code: 'MetaRight', label: 'Win', width: 1.3 },
-    { code: 'ContextMenu', label: 'Menu', width: 1.3 },
-    { code: 'ControlRight', label: 'Ctrl', width: 1.3 },
+    { code: 'Convert', label: '変換', width: 1.1 },
+    { code: 'KanaMode', label: 'かな', width: 1.1 },
+    { code: 'AltRight', label: 'Alt', width: 1.1 },
+    { code: 'MetaRight', label: 'Win', width: 1.1 },
+    { code: 'ContextMenu', label: 'Menu', width: 1.1 },
+    { code: 'ControlRight', label: 'Ctrl', width: 1.1 },
     { code: '', label: '', width: 0.5, empty: true },
     { code: 'ArrowLeft', label: '←', width: 1 },
     { code: 'ArrowDown', label: '↓', width: 1 },
     { code: 'ArrowRight', label: '→', width: 1 },
     { code: '', label: '', width: 0.5, empty: true },
-    { code: 'Numpad0', label: '0', width: 2 },
+    { code: 'Numpad0', label: '0', width: 2.1 },
     { code: 'NumpadDecimal', label: '.', width: 1 },
     { code: '', label: '', width: 1, empty: true }, // NumpadEnter continues from above
   ],
@@ -420,10 +422,12 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
       </div>
       <div className="space-y-1">
         {keyboardLayout.map((row, rowIndex) => (
-          <div key={rowIndex} className="flex gap-1">
+          <div key={rowIndex} className="relative flex gap-1 h-10">
             {row.map((key, keyIndex) => {
+              const keyWidth = `${key.width * 40}px`;
+
               if (key.empty) {
-                return <div key={keyIndex} style={{ width: `${key.width * 40}px` }} />;
+                return <div key={keyIndex} style={{ width: keyWidth, minWidth: keyWidth }} />;
               }
 
               const isPressed = pressedKeys.has(key.code);
@@ -440,6 +444,30 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
                 bgColor = 'bg-teal-600 text-white';
               }
 
+              if (key.rowSpan === 2) {
+                return (
+                  <div
+                    key={keyIndex}
+                    className="relative"
+                    style={{ width: keyWidth, minWidth: keyWidth }}
+                  >
+                    <div
+                      className={`
+                        absolute top-0 left-0 z-10
+                        flex items-center justify-center
+                        border border-gray-600 rounded
+                        text-xs font-semibold text-center
+                        transition-colors duration-75
+                        ${bgColor}
+                        h-21 w-full
+                      `}
+                    >
+                      <span className="whitespace-pre-line leading-tight">{key.label}</span>
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={keyIndex}
@@ -450,11 +478,11 @@ export default function Keyboard({ pressedKeys, everPressedKeys, onKeyPress, onK
                     text-xs font-semibold text-center
                     transition-colors duration-75
                     ${bgColor}
-                    ${key.rowSpan === 2 ? 'h-20' : 'h-10'}
+                    h-10
                   `}
                   style={{
-                    width: `${key.width * 40}px`,
-                    minWidth: `${key.width * 40}px`,
+                    width: keyWidth,
+                    minWidth: keyWidth,
                   }}
                 >
                   <span className="whitespace-pre-line leading-tight">{key.label}</span>
