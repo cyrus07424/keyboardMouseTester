@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 interface KeyEvent {
   timestamp: number;
@@ -18,11 +18,12 @@ export default function KeyPressGraph({ events, isPaused }: KeyPressGraphProps) 
   const [keys, setKeys] = useState<string[]>([]);
   const [renderTrigger, setRenderTrigger] = useState(0);
   const pausedTimeRef = useRef<number | null>(null);
+  const TIME_WINDOW_MS = 10000;
 
   useEffect(() => {
     // 過去10秒間のイベントから一意なキーを抽出
     const now = pausedTimeRef.current ?? Date.now();
-    const recentEvents = events.filter(e => now - e.timestamp <= 10000);
+    const recentEvents = events.filter(e => now - e.timestamp <= TIME_WINDOW_MS);
     const uniqueKeys = Array.from(new Set(recentEvents.map(e => e.key)));
     setKeys(uniqueKeys);
   }, [events]);
@@ -77,45 +78,41 @@ export default function KeyPressGraph({ events, isPaused }: KeyPressGraphProps) 
       ctx.stroke();
     }
 
-    // 各キーの状態を折れ線グラフで描画
+    const windowStart = now - TIME_WINDOW_MS;
+
+    // 各キーの状態を段差グラフで描画
     keys.forEach((key, keyIndex) => {
       const y = keyIndex * keyHeight + keyHeight / 2;
-      const keyEvents = events.filter(e => e.key === key && now - e.timestamp <= 10000);
+      const keyEvents = events
+        .filter(e => e.key === key)
+        .sort((a, b) => a.timestamp - b.timestamp);
 
       // キー名を描画
       ctx.fillStyle = '#9ca3af';
       ctx.font = '12px Arial';
       ctx.fillText(key, 5, y + 5);
 
-      // イベントを時系列順にソート
-      const sortedEvents = [...keyEvents].sort((a, b) => a.timestamp - b.timestamp);
-
       ctx.strokeStyle = '#10b981';
       ctx.lineWidth = 2;
       ctx.beginPath();
 
-      let currentState = false;
+      // 10秒窓の開始時点の状態を取得（窓外の直近イベントも反映）
+      const lastBeforeWindow = keyEvents.filter(event => event.timestamp < windowStart).at(-1);
+      let state = lastBeforeWindow?.isPressed ?? false;
+      const levelY = (pressed: boolean) => (pressed ? y - keyHeight / 4 : y + keyHeight / 4);
 
-      // 現在から過去に向かって描画
-      for (let x = width; x >= 0; x -= 1) {
-        const time = now - ((width - x) / width) * 10000;
-        
-        // この時点での状態を判定
-        let stateAtTime = false;
-        for (const event of sortedEvents) {
-          if (event.timestamp <= time) {
-            stateAtTime = event.isPressed;
-          }
-        }
+      ctx.moveTo(0, levelY(state));
 
-        const graphY = stateAtTime ? y - keyHeight / 4 : y + keyHeight / 4;
-
-        if (x === width) {
-          ctx.moveTo(x, graphY);
-        } else {
-          ctx.lineTo(x, graphY);
-        }
+      // ウィンドウ内イベントを時系列で処理し、イベント時刻で段差を作る
+      const windowEvents = keyEvents.filter(event => event.timestamp >= windowStart && event.timestamp <= now);
+      for (const event of windowEvents) {
+        const eventX = ((event.timestamp - windowStart) / TIME_WINDOW_MS) * width;
+        ctx.lineTo(eventX, levelY(state));
+        state = event.isPressed;
+        ctx.lineTo(eventX, levelY(state));
       }
+
+      ctx.lineTo(width, levelY(state));
 
       ctx.stroke();
     });

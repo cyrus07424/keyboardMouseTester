@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import {useMemo} from 'react';
 
 interface KeyEvent {
   timestamp: number;
@@ -13,25 +13,6 @@ interface EventLogProps {
 }
 
 export default function EventLog({ events }: EventLogProps) {
-  const logEndRef = useRef<HTMLDivElement>(null);
-  const logContainerRef = useRef<HTMLDivElement>(null);
-  const [autoScroll, setAutoScroll] = useState(true);
-
-  // Auto-scroll to bottom when new events arrive
-  useEffect(() => {
-    if (autoScroll && logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [events, autoScroll]);
-
-  // Detect manual scrolling
-  const handleScroll = () => {
-    if (logContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = logContainerRef.current;
-      const isAtBottom = scrollHeight - scrollTop - clientHeight < 10;
-      setAutoScroll(isAtBottom);
-    }
-  };
 
   // Format timestamp to readable time
   const formatTime = (timestamp: number) => {
@@ -44,7 +25,7 @@ export default function EventLog({ events }: EventLogProps) {
   };
 
   // Display only the last 100 events to prevent performance issues
-  const displayEvents = events.slice(-100);
+  const displayEvents = useMemo(() => events.slice(-100), [events]);
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
@@ -52,13 +33,8 @@ export default function EventLog({ events }: EventLogProps) {
         <h2 className="text-white text-xl font-bold">
           イベントログ
         </h2>
-        <div className="text-sm text-gray-400">
-          {autoScroll ? '自動スクロール: ON' : '自動スクロール: OFF (下にスクロールでON)'}
-        </div>
       </div>
       <div
-        ref={logContainerRef}
-        onScroll={handleScroll}
         className="bg-gray-900 rounded p-3 h-64 overflow-y-auto font-mono text-sm"
       >
         {displayEvents.length === 0 ? (
@@ -87,7 +63,6 @@ export default function EventLog({ events }: EventLogProps) {
                 </span>
               </div>
             ))}
-            <div ref={logEndRef} />
           </div>
         )}
       </div>
