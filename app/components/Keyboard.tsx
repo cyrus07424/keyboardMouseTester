@@ -295,7 +295,7 @@ export default function Keyboard({
     const emitTap = (code: string, source: 'keyupOnly' | 'fallback') => {
       const now = performance.now();
       const lastTapAt = lastTapTimeRef.current.get(code) ?? 0;
-      if (now - lastTapAt < 40) {
+      if (now - lastTapAt < 300) {
         debugLog('tapSkippedAsDuplicate', { code, source, deltaMs: now - lastTapAt });
         return;
       }
@@ -337,6 +337,16 @@ export default function Keyboard({
       if (e.repeat && !isImeToggleKey) return;
       if (currentlyPressedKeysRef.current.has(normalizedCode)) return;
 
+      // Waterfox では keyup("Zenkaku") → keydown("Hankaku") の順で届く場合がある。
+      // emitTap 発火直後の keydown は重複とみなして無視する。
+      if (KEYUP_TAP_KEYS.has(normalizedCode)) {
+        const lastTapAt = lastTapTimeRef.current.get(normalizedCode) ?? 0;
+        if (performance.now() - lastTapAt < 300) {
+          debugLog('keydownSkippedAfterRecentTap', { normalizedCode, deltaMs: performance.now() - lastTapAt });
+          return;
+        }
+      }
+
       currentlyPressedKeysRef.current.add(normalizedCode);
       onKeyPress(normalizedCode);
 
@@ -367,7 +377,8 @@ export default function Keyboard({
       }
 
       if (KEYUP_TAP_KEYS.has(normalizedCode) && !currentlyPressedKeysRef.current.has(normalizedCode)) {
-        // keydown が来ないキー: keyup を1回タップとして扱う
+        // keydown が来ないキー: keyup を1回タップとして扱う（フォールバックタイマーもキャンセル）
+        clearReleaseTimer(normalizedCode);
         emitTap(normalizedCode, 'keyupOnly');
         return;
       }
