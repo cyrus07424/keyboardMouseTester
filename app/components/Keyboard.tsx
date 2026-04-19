@@ -418,6 +418,7 @@ export default function Keyboard({
           </div>
         )}
       </div>
+      <div className="flex justify-center">
       <div className="space-y-1">
         {keyboardLayout.map((row, rowIndex) => (
           <div key={rowIndex} className="relative flex gap-1 h-10">
@@ -506,6 +507,7 @@ export default function Keyboard({
             })}
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

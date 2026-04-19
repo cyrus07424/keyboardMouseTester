@@ -50,7 +50,6 @@ export default function Home() {
   const [everPressedKeys, setEverPressedKeys] = useState<Set<string>>(new Set());
   const [everPressedButtons, setEverPressedButtons] = useState<Set<number>>(new Set());
   const [keyEvents, setKeyEvents] = useState<KeyEvent[]>([]);
-  const [isPaused, setIsPaused] = useState(false);
   const [activeTab, setActiveTab] = useState<'keyboard' | 'mouse'>('keyboard');
   const [debugEnabled, setDebugEnabled] = useState(false);
   const [viewMode, setViewMode] = useState<'normal' | 'heatmap'>('normal');
@@ -94,7 +93,7 @@ export default function Home() {
       [key]: (prev[key] ?? 0) + 1,
     }));
     pressTimeRef.current.set(key, Date.now());
-    
+
     // Always capture events regardless of pause state
     addEvent({
       timestamp: Date.now(),
@@ -109,9 +108,9 @@ export default function Home() {
       newSet.delete(key);
       return newSet;
     });
-    
+
     pressTimeRef.current.delete(key);
-    
+
     // Always capture events regardless of pause state
     addEvent({
       timestamp: Date.now(),
@@ -142,7 +141,7 @@ export default function Home() {
       newSet.delete(button);
       return newSet;
     });
-    
+
     // Always capture events regardless of pause state
     addEvent({
       timestamp: Date.now(),
@@ -160,10 +159,6 @@ export default function Home() {
     setEverPressedButtons(new Set());
     setKeyEvents([]);
     pressTimeRef.current.clear();
-  }, []);
-
-  const togglePause = useCallback(() => {
-    setIsPaused(prev => !prev);
   }, []);
 
   const toggleDebug = useCallback(() => {
@@ -197,7 +192,7 @@ export default function Home() {
             キーボードのキーやマウスのボタンを押すと、リアルタイムで反応します。
             チャタリング検出にも対応しています。
           </p>
-          
+
           {/* タブ切り替え */}
           <div className="flex gap-2 justify-center mb-4">
             <button
@@ -222,24 +217,9 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="flex gap-4 justify-center mb-4">
-            <button
-              onClick={togglePause}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg font-semibold transition-colors"
-            >
-              {isPaused ? 'グラフ再開' : 'グラフ一時停止'}
-            </button>
-            <button
-              onClick={handleReset}
-              className="px-6 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-lg font-semibold transition-colors"
-            >
-              全体リセット
-            </button>
-          </div>
-
-          <div className="mx-auto max-w-xl rounded-xl border border-gray-700 bg-gray-800/70 p-4">
+          <div className="mx-auto max-w-dvh rounded-xl border border-gray-700 bg-gray-800/70 p-4">
             <p className="text-sm font-bold text-gray-200 mb-3">設定メニュー</p>
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-3">
               <ToggleSwitch
                 label="表示モード"
                 checked={viewMode === 'heatmap'}
@@ -254,6 +234,17 @@ export default function Home() {
                 onLabel="ON"
                 offLabel="OFF"
               />
+                <div className="flex items-center justify-between gap-4 rounded-lg bg-gray-900/70 px-4 py-3 border border-gray-700">
+                    <div className="text-left">
+                        <p className="text-sm font-semibold text-gray-100">全体リセット</p>
+                    </div>
+                    <button
+                        onClick={handleReset}
+                        className="px-6 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-lg font-semibold transition-colors"
+                    >
+                        リセット
+                    </button>
+                </div>
             </div>
           </div>
         </div>
@@ -290,7 +281,7 @@ export default function Home() {
         )}
 
         <div className="mb-6">
-          <KeyPressGraph events={keyEvents} isPaused={isPaused} />
+          <KeyPressGraph events={keyEvents} />
         </div>
 
         <div className="mb-6">

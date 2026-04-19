@@ -10,34 +10,21 @@ interface KeyEvent {
 
 interface KeyPressGraphProps {
   events: KeyEvent[];
-  isPaused: boolean;
 }
 
-export default function KeyPressGraph({ events, isPaused }: KeyPressGraphProps) {
+export default function KeyPressGraph({ events }: KeyPressGraphProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [keys, setKeys] = useState<string[]>([]);
   const [renderTrigger, setRenderTrigger] = useState(0);
-  const pausedTimeRef = useRef<number | null>(null);
   const TIME_WINDOW_MS = 10000;
 
   useEffect(() => {
     // 現在の表示時刻基準で、過去10秒に入力があったキーだけを表示する
-    const now = pausedTimeRef.current ?? Date.now();
+    const now = Date.now();
     const recentEvents = events.filter(e => now - e.timestamp <= TIME_WINDOW_MS);
     const uniqueKeys = Array.from(new Set(recentEvents.map(e => e.key)));
     setKeys(uniqueKeys);
-  }, [events, isPaused, renderTrigger]);
-
-  useEffect(() => {
-    // 一時停止状態が変わったときの処理
-    if (isPaused && pausedTimeRef.current === null) {
-      // 一時停止開始 - 現在時刻を記録
-      pausedTimeRef.current = Date.now();
-    } else if (!isPaused && pausedTimeRef.current !== null) {
-      // 一時停止解除 - 記録をクリア
-      pausedTimeRef.current = null;
-    }
-  }, [isPaused]);
+  }, [events, renderTrigger]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -48,8 +35,7 @@ export default function KeyPressGraph({ events, isPaused }: KeyPressGraphProps) 
 
     const width = canvas.width;
     const height = canvas.height;
-    // 一時停止中は固定された時刻を使用、そうでなければ現在時刻
-    const now = pausedTimeRef.current ?? Date.now();
+    const now = Date.now();
 
     // キャンバスをクリア
     ctx.fillStyle = '#1f2937';
@@ -116,30 +102,14 @@ export default function KeyPressGraph({ events, isPaused }: KeyPressGraphProps) 
 
       ctx.stroke();
     });
-
-    // 一時停止表示
-    if (isPaused) {
-      ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
-      ctx.fillRect(0, 0, width, height);
-      
-      ctx.fillStyle = '#ef4444';
-      ctx.font = 'bold 24px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('一時停止中', width / 2, height / 2);
-      ctx.textAlign = 'left';
-    }
-  }, [events, keys, isPaused, renderTrigger]);
+  }, [events, keys, renderTrigger]);
 
   useEffect(() => {
-    if (!isPaused) {
-      const interval = setInterval(() => {
-        // Trigger re-render to update the graph animation
-        setRenderTrigger(prev => prev + 1);
-      }, 50); // 20 FPS
-
-      return () => clearInterval(interval);
-    }
-  }, [isPaused]);
+    const interval = setInterval(() => {
+      setRenderTrigger(prev => prev + 1);
+    }, 50); // 20 FPS
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
