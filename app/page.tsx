@@ -5,6 +5,7 @@ import Keyboard from './components/Keyboard';
 import MouseTester from './components/MouseTester';
 import KeyPressGraph from './components/KeyPressGraph';
 import EventLog from './components/EventLog';
+import KeyboardSummary from './components/KeyboardSummary';
 
 interface KeyEvent {
   timestamp: number;
@@ -283,6 +284,10 @@ export default function Home() {
             </div>
           )}
         </div>
+
+        {activeTab === 'keyboard' && (
+            <KeyboardSummary keyPressCounts={keyPressCounts} events={keyEvents} />
+        )}
 
         <div className="mb-6">
           <KeyPressGraph events={keyEvents} isPaused={isPaused} />

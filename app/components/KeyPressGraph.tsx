@@ -21,12 +21,12 @@ export default function KeyPressGraph({ events, isPaused }: KeyPressGraphProps) 
   const TIME_WINDOW_MS = 10000;
 
   useEffect(() => {
-    // 過去10秒間のイベントから一意なキーを抽出
+    // 現在の表示時刻基準で、過去10秒に入力があったキーだけを表示する
     const now = pausedTimeRef.current ?? Date.now();
     const recentEvents = events.filter(e => now - e.timestamp <= TIME_WINDOW_MS);
     const uniqueKeys = Array.from(new Set(recentEvents.map(e => e.key)));
     setKeys(uniqueKeys);
-  }, [events]);
+  }, [events, isPaused, renderTrigger]);
 
   useEffect(() => {
     // 一時停止状態が変わったときの処理

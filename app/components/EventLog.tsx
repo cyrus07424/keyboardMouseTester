@@ -1,6 +1,6 @@
 'use client';
 
-import {useMemo} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 
 interface KeyEvent {
   timestamp: number;
@@ -13,6 +13,34 @@ interface EventLogProps {
 }
 
 export default function EventLog({ events }: EventLogProps) {
+  const logContainerRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+
+  const checkIsAtBottom = () => {
+    if (!logContainerRef.current) return true;
+    const { scrollTop, scrollHeight, clientHeight } = logContainerRef.current;
+    return scrollHeight - (scrollTop + clientHeight) < 8;
+  };
+
+  const scrollToBottom = () => {
+    if (!logContainerRef.current) return;
+    logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    setIsAtBottom(true);
+  };
+
+  useEffect(() => {
+    if (!logContainerRef.current) return;
+    // Auto-follow only when already at bottom.
+    if (isAtBottom) {
+      scrollToBottom();
+    } else {
+      setIsAtBottom(checkIsAtBottom());
+    }
+  }, [events.length, isAtBottom]);
+
+  const handleScroll = () => {
+    setIsAtBottom(checkIsAtBottom());
+  };
 
   // Format timestamp to readable time
   const formatTime = (timestamp: number) => {
@@ -35,6 +63,8 @@ export default function EventLog({ events }: EventLogProps) {
         </h2>
       </div>
       <div
+        ref={logContainerRef}
+        onScroll={handleScroll}
         className="bg-gray-900 rounded p-3 h-64 overflow-y-auto font-mono text-sm"
       >
         {displayEvents.length === 0 ? (
@@ -52,10 +82,10 @@ export default function EventLog({ events }: EventLogProps) {
                     : 'text-red-400'
                 }`}
               >
-                <span className="text-gray-500 w-28 flex-shrink-0">
+                <span className="text-gray-500 w-28 shrink-0">
                   {formatTime(event.timestamp)}
                 </span>
-                <span className="w-16 flex-shrink-0">
+                <span className="w-16 shrink-0">
                   {event.isPressed ? 'DOWN' : 'UP'}
                 </span>
                 <span className="text-white font-semibold">
@@ -66,6 +96,17 @@ export default function EventLog({ events }: EventLogProps) {
           </div>
         )}
       </div>
+      {!isAtBottom && (
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            className="px-3 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-700 transition-colors"
+          >
+            最下部へスクロール
+          </button>
+        </div>
+      )}
     </div>
   );
 }
