@@ -301,7 +301,12 @@ export default function Home() {
         </div>
 
         {activeTab === 'keyboard' && (
-            <KeyboardSummary keyPressCounts={keyPressCounts} events={keyEvents} />
+            <KeyboardSummary
+              keyPressCounts={keyPressCounts}
+              events={keyEvents}
+              pressedKeys={pressedKeys}
+              viewMode={viewMode}
+            />
         )}
 
         <div className="mb-6">

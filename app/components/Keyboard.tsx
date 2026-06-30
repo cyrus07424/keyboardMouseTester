@@ -68,7 +68,7 @@ const normalizeJisKeyCode = (code: string, key: string): string => {
 };
 
 // 109キーボードのレイアウト定義
-const keyboardLayout = [
+export const keyboardLayout = [
   // Row 1: ESC, F1-F12, etc.
   [
     { code: 'Escape', label: 'Esc', width: 1 },
@@ -219,6 +219,15 @@ const keyboardLayout = [
     { code: '', label: '', width: 1, empty: true }, // NumpadEnter continues from above
   ],
 ];
+
+export const KNOWN_KEY_CODES = keyboardLayout.reduce<Set<string>>((codes, row) => {
+  row.forEach(key => {
+    if (!('empty' in key && key.empty) && key.code) {
+      codes.add(key.code);
+    }
+  });
+  return codes;
+}, new Set<string>());
 
 export default function Keyboard({
   pressedKeys,
