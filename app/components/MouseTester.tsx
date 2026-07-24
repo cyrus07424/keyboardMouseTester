@@ -45,6 +45,7 @@ export default function MouseTester({
 }: MouseTesterProps) {
   const [activeWheels, setActiveWheels] = useState<Set<number>>(new Set());
   const wheelTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  const activePointerButtonsRef = useRef<Set<number>>(new Set());
 
   const debugLog = (tag: string, payload: Record<string, unknown>) => {
     if (!debugEnabled) return;
@@ -68,16 +69,50 @@ export default function MouseTester({
   };
 
   useEffect(() => {
+    const isSupportedMouseButton = (button: number) => button >= 0 && button <= 4;
+
+    const handleButtonDown = (button: number, source: 'mouse' | 'pointer') => {
+      if (!isSupportedMouseButton(button)) return;
+      if (activePointerButtonsRef.current.has(button)) {
+        debugLog('buttonDownSkippedDuplicate', { button, source });
+        return;
+      }
+      activePointerButtonsRef.current.add(button);
+      onButtonPress(button);
+    };
+
+    const handleButtonUp = (button: number, source: 'mouse' | 'pointer') => {
+      if (!isSupportedMouseButton(button)) return;
+      if (!activePointerButtonsRef.current.has(button)) {
+        debugLog('buttonUpSkippedUnknown', { button, source });
+        return;
+      }
+      activePointerButtonsRef.current.delete(button);
+      onButtonRelease(button);
+    };
+
     const handleMouseDown = (e: MouseEvent) => {
       e.preventDefault();
       debugLog('mousedown', { button: e.button, buttons: e.buttons, timeStamp: e.timeStamp });
-      onButtonPress(e.button);
+      handleButtonDown(e.button, 'mouse');
     };
 
     const handleMouseUp = (e: MouseEvent) => {
       e.preventDefault();
       debugLog('mouseup', { button: e.button, buttons: e.buttons, timeStamp: e.timeStamp });
-      onButtonRelease(e.button);
+      handleButtonUp(e.button, 'mouse');
+    };
+
+    const handlePointerDown = (e: PointerEvent) => {
+      e.preventDefault();
+      debugLog('pointerdown', { button: e.button, buttons: e.buttons, pointerType: e.pointerType, timeStamp: e.timeStamp });
+      handleButtonDown(e.button, 'pointer');
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      e.preventDefault();
+      debugLog('pointerup', { button: e.button, buttons: e.buttons, pointerType: e.pointerType, timeStamp: e.timeStamp });
+      handleButtonUp(e.button, 'pointer');
     };
 
     const handleWheel = (e: WheelEvent) => {
@@ -92,18 +127,40 @@ export default function MouseTester({
     };
 
     const handleContextMenu = (e: MouseEvent) => { e.preventDefault(); };
+    const handleAuxClick = (e: MouseEvent) => {
+      if (e.button === 3 || e.button === 4) {
+        e.preventDefault();
+        debugLog('auxclickPrevented', { button: e.button, buttons: e.buttons, timeStamp: e.timeStamp });
+      }
+    };
+    const handleWindowBlur = () => {
+      if (activePointerButtonsRef.current.size === 0) return;
+      for (const button of Array.from(activePointerButtonsRef.current)) {
+        activePointerButtonsRef.current.delete(button);
+        onButtonRelease(button);
+      }
+    };
 
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointerup', handlePointerUp);
     window.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('auxclick', handleAuxClick);
+    window.addEventListener('blur', handleWindowBlur);
 
     return () => {
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointerup', handlePointerUp);
       window.removeEventListener('wheel', handleWheel);
       window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('auxclick', handleAuxClick);
+      window.removeEventListener('blur', handleWindowBlur);
       wheelTimers.current.forEach(t => clearTimeout(t));
+      activePointerButtonsRef.current.clear();
     };
   }, [debugEnabled, preventPageScroll, onButtonPress, onButtonRelease]);
 
